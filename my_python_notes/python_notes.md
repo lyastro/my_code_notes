@@ -150,3 +150,111 @@ a = 1 b = 2 c = 3 d = 88 kw = {'x': '#'}
 所以，对于任意函数，都可以通过类似func(*args, **kw)的形式调用它，无论它的参数是如何定义的。
 
 虽然可以组合多达5种参数，但不要同时使用太多的组合，否则函数接口的可理解性很差。
+
+## 高级特性
+
+### 生成器
+
+#### 方法一
+
+要创建一个generator，有很多种方法。第一种方法很简单，只要把一个列表生成式的[]改成()，就创建了一个generator：
+
+```Python
+>>> L = [x * x for x in range(10)]
+>>> L
+[0, 1, 4, 9, 16, 25, 36, 49, 64, 81]
+>>> g = (x * x for x in range(10))
+>>> g
+<generator object <genexpr> at 0x1022ef630>
+```
+
+创建L和g的区别仅在于最外层的[]和()，L是一个list，而g是一个generator。
+
+#### 方法二
+
+斐波拉契数列用列表生成式写不出来，但是，用函数把它打印出来却很容易：
+
+```python
+def fib(max):
+    n, a, b = 0, 0, 1
+    while n < max:
+        print(b)
+        a, b = b, a + b
+        n = n + 1
+    return 'done'
+```
+
+上面的函数和generator仅一步之遥。要把fib函数变成generator，只需要把print(b)改为yield b就可以了
+
+```python
+def fib(max):
+    n, a, b = 0, 0, 1
+    while n < max:
+        yield(b)
+        a, b = b, a + b
+        n = n + 1
+    return 'done'
+```
+
+这就是定义generator的另一种方法。如果一个函数定义中包含yield关键字，那么这个函数就不再是一个普通函数，而是一个generator。
+
+把函数改成generator后，我们基本上从来不会用next()来获取下一个返回值，而是直接使用for循环来迭代：
+
+```python
+>>> for n in fib(6):
+...     print(n)
+...
+1
+1
+2
+3
+5
+8
+```
+
+但是用for循环调用generator时，发现拿不到generator的return语句的返回值。
+
+generator函数的“调用”实际返回一个generator对象：
+
+```python
+>>> g = fib(6)
+>>> g
+<generator object fib at 0x1022ef948>
+```
+### 迭代器
+
+凡是可作用于for循环的对象都是Iterable类型；
+
+凡是可作用于next()函数的对象都是Iterator类型，它们表示一个惰性计算的序列；
+
+集合数据类型如list、dict、str等是Iterable但不是Iterator，不过可以通过iter()函数获得一个Iterator对象。
+
+Python的for循环本质上就是通过不断调用next()函数实现的，例如：
+
+```python
+for x in [1, 2, 3, 4, 5]:
+    pass
+```
+
+实际上完全等价于：
+
+```python
+# 首先获得Iterator对象:
+it = iter([1, 2, 3, 4, 5])
+# 循环:
+while True:
+    try:
+        # 获得下一个值:
+        x = next(it)
+    except StopIteration:
+        # 遇到StopIteration就退出循环
+        break
+```
+
+## 函数式编程
+
+函数式编程就是一种抽象程度很高的编程范式，纯粹的函数式编程语言编写的函数没有变量，因此，任意一个函数，只要输入是确定的，输出就是确定的，这种纯函数我们称之为没有副作用。而允许使用变量的程序设计语言，由于函数内部的变量状态不确定，同样的输入，可能得到不同的输出，因此，这种函数是有副作用的。
+
+函数式编程的一个特点就是，允许把函数本身作为参数传入另一个函数，还允许返回一个函数！
+
+Python对函数式编程提供部分支持。由于Python允许使用变量，因此，Python不是纯函数式编程语言。
